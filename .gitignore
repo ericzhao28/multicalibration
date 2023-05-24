@@ -1,0 +1,44 @@
+
+# Vim files
+*.swp
+*.swo
+*.swn
+*.swm
+*.bak
+*.bk
+*.undo
+*.backup
+*.swpx
+*.swx
+*.swpx
+*.swx
+
+# Mac files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Text editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.komodoproject
+*.komodotools
+*.kate-swp
+
+# Compiled files
+*.o
+*.out
+*.pyc
+*.exe
+*.dll
+*.so
+*.dylib
+__pycache__/
+*.pyc
+*.pyo
+
+*.pkl
+
+results
