@@ -12,7 +12,7 @@ from calibration import (
 import pickle
 
 
-FREQUENCY = 24
+FREQUENCY = 12
 
 
 def run_expt(
@@ -252,277 +252,21 @@ if len(sys.argv) > 1:
 else:
     it_todo = None
 
-#######################################################################################################################################################################
-#######################################################################################################################################################################
-#######################################################################################################################################################################
-#######################################################################################################################################################################
-
-# Dry Bean dataset
-with open("new_dry_beans_results.csv", "w", newline="") as csvfile:
-    fieldnames = [
-        "Algorithm",
-        "Iterations",
-        "Dataset",
-        "Learning Rate",
-        "Training Calibration Error",
-        "Testing Calibration Error",
-        "Testing Calibration Error (Ergodic)",
-    ]
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-    writer.writeheader()
-
-    for seed in range(5):
-        dataset = "Dry Beans"
-        np.random.seed(seed)
-        random.seed(seed)
-        data = DryBeanData(seed)
-        features_train, target_train, groups_train = data.get_training_data()
-        features_test, target_test, groups_test = data.get_test_data()
-        n_bins = 3
-        for lr in [0.8, 0.85, 0.9, 0.95]:
-            other_alg_class = None
-            other_name = ""
-            for alg_class, name in [
-                (MLProd, "Prod"),
-                (OptimisticHedge, "OGD"),
-                (Hedge, "Hedge"),
-                (OnlineGradientDescent, "GD"),
-            ]:
-                run_expt(
-                    dataset,
-                    seed,
-                    None,
-                    "",
-                    alg_class,
-                    name,
-                    0,
-                    lr,
-                    n_bins,
-                    features_train,
-                    target_train,
-                    groups_train,
-                    features_test,
-                    target_test,
-                    groups_test,
-                    writer,
-                    100,
-                    2,
-                    200,
-                )
-        for other_lr in [0.98, 0.99, 0.95, 0.9]:
-            for alg_class, name, lr in [
-                (Hedge, "Hedge-Hedge", 0.95),
-                (Hedge, "Hedge-Hedge", 0.99),
-                (Hedge, "Hedge-Hedge", 0.9),
-                (OptimisticHedge, "OGD-OGD", 0.95),
-                (OptimisticHedge, "OGD-OGD", 0.99),
-                (OptimisticHedge, "OGD-OGD", 0.9),
-            ]:
-                run_expt(
-                    dataset,
-                    seed,
-                    alg_class,
-                    name,
-                    alg_class,
-                    name,
-                    other_lr,
-                    lr,
-                    n_bins,
-                    features_train,
-                    target_train,
-                    groups_train,
-                    features_test,
-                    target_test,
-                    groups_test,
-                    writer,
-                    100,
-                    2,
-                    200,
-                )
-
-
-#######################################################################################################################################################################
-#######################################################################################################################################################################
-#######################################################################################################################################################################
-#######################################################################################################################################################################
-
-
-# Bank Market dataset
-with open("new_bank_market_results.csv", "w", newline="") as csvfile:
-    fieldnames = [
-        "Algorithm",
-        "Iterations",
-        "Dataset",
-        "Learning Rate",
-        "Training Calibration Error",
-        "Testing Calibration Error",
-        "Testing Calibration Error (Ergodic)",
-    ]
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-    writer.writeheader()
-
-    for seed in range(5):
-        dataset = "Bank Market"
-        np.random.seed(seed)
-        random.seed(seed)
-        data = BankMarketingData(seed)
-        features_train, target_train, groups_train = data.get_training_data()
-        features_test, target_test, groups_test = data.get_test_data()
-        n_bins = 10
-
-        for other_lr in [0.98, 0.99, 0.95, 0.9]:
-            for alg_class, name, lr in [
-                (Hedge, "Hedge-Hedge", 0.95),
-                (Hedge, "Hedge-Hedge", 0.9),
-                (OptimisticHedge, "OGD-OGD", 0.95),
-                (OptimisticHedge, "OGD-OGD", 0.9),
-            ]:
-                run_expt(
-                    dataset,
-                    seed,
-                    alg_class,
-                    name,
-                    alg_class,
-                    name,
-                    other_lr,
-                    lr,
-                    n_bins,
-                    features_train,
-                    target_train,
-                    groups_train,
-                    features_test,
-                    target_test,
-                    groups_test,
-                    writer,
-                )
-
-        for lr in [0.8, 0.85, 0.9, 0.95]:
-            other_alg_class = None
-            other_name = ""
-            for alg_class, name in [
-                (OptimisticHedge, "OGD"),
-                (Hedge, "Hedge"),
-                (MLProd, "Prod"),
-                (OnlineGradientDescent, "GD"),
-            ]:
-                run_expt(
-                    dataset,
-                    seed,
-                    None,
-                    "",
-                    alg_class,
-                    name,
-                    0,
-                    lr,
-                    n_bins,
-                    features_train,
-                    target_train,
-                    groups_train,
-                    features_test,
-                    target_test,
-                    groups_test,
-                    writer,
-                )
-
-#######################################################################################################################################################################
-#######################################################################################################################################################################
-#######################################################################################################################################################################
-#######################################################################################################################################################################
-
-
-# Adult Income dataset
-with open("new_sweep_adult_income_results.csv", "w", newline="") as csvfile:
-    fieldnames = [
-        "Algorithm",
-        "Iterations",
-        "Dataset",
-        "Learning Rate",
-        "Training Calibration Error",
-        "Testing Calibration Error",
-        "Testing Calibration Error (Ergodic)",
-    ]
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-writer.writeheader()
-
-for seed in range(10):
-    dataset = "AdultIncome"
-    np.random.seed(seed)
-    random.seed(seed)
-    data = AdultIncomeData(seed)
-    features_train, target_train, groups_train = data.get_training_data()
-    features_test, target_test, groups_test = data.get_test_data()
-    n_bins = 10
-
-    for other_lr in [0.98, 0.99, 0.95, 0.9]:
-        for alg_class, name, lr in [
-            (Hedge, "Hedge-Hedge", 0.95),
-            (Hedge, "Hedge-Hedge", 0.9),
-            (OptimisticHedge, "OGD-OGD", 0.95),
-            (OptimisticHedge, "OGD-OGD", 0.9),
-        ]:
-            run_expt(
-                dataset,
-                seed,
-                alg_class,
-                name,
-                alg_class,
-                name,
-                other_lr,
-                lr,
-                n_bins,
-                features_train,
-                target_train,
-                groups_train,
-                features_test,
-                target_test,
-                groups_test,
-                writer,
-            )
-
-    for lr in [0.8, 0.85, 0.9, 0.95]:
-        other_alg_class = None
-        other_name = ""
-        for alg_class, name in [
-            (OptimisticHedge, "OGD"),
-            (Hedge, "Hedge"),
-            (MLProd, "Prod"),
-            (OnlineGradientDescent, "GD"),
-        ]:
-            run_expt(
-                dataset,
-                seed,
-                None,
-                "",
-                alg_class,
-                name,
-                0,
-                lr,
-                n_bins,
-                features_train,
-                target_train,
-                groups_train,
-                features_test,
-                target_test,
-                groups_test,
-                writer,
-            )
-
-with open("new_adult_income_results.csv", "w", newline="") as csvfile:
-    fieldnames = [
-        "Algorithm",
-        "Iterations",
-        "Dataset",
-        "Learning Rate",
-        "Training Calibration Error",
-        "Testing Calibration Error",
-        "Testing Calibration Error (Ergodic)",
-    ]
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-writer.writeheader()
-
-for seed in range(20):
-    for dataset in ["AdultIncome"]:
-        if dataset == "AdultIncome":
+if False:
+    with open("new_sweep_adult_income_results.csv", "w", newline="") as csvfile:
+        fieldnames = [
+            "Algorithm",
+            "Iterations",
+            "Dataset",
+            "Learning Rate",
+            "Training Calibration Error",
+            "Testing Calibration Error",
+            "Testing Calibration Error (Ergodic)",
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for seed in range(10):
+            dataset = "AdultIncome"
             np.random.seed(seed)
             random.seed(seed)
             data = AdultIncomeData(seed)
@@ -530,52 +274,293 @@ for seed in range(20):
             features_test, target_test, groups_test = data.get_test_data()
             n_bins = 10
 
-            for alg_class, name, lr, other_lr in [
-                (Hedge, "Hedge-Hedge", 0.95, 0.99),
-                (OptimisticHedge, "OGD-OGD", 0.95, 0.98),
-            ]:
-                run_expt(
-                    dataset,
-                    seed,
-                    alg_class,
-                    name,
-                    alg_class,
-                    name,
-                    other_lr,
-                    lr,
-                    n_bins,
-                    features_train,
-                    target_train,
-                    groups_train,
-                    features_test,
-                    target_test,
-                    groups_test,
-                    writer,
-                )
+            for other_lr in [0.98, 0.99, 0.95, 0.9]:
+                for alg_class, name, lr in [
+                    (Hedge, "Hedge-Hedge", 0.95),
+                    (Hedge, "Hedge-Hedge", 0.9),
+                    (OptimisticHedge, "OGD-OGD", 0.95),
+                    (OptimisticHedge, "OGD-OGD", 0.9),
+                ]:
+                    run_expt(
+                        dataset,
+                        seed,
+                        alg_class,
+                        name,
+                        alg_class,
+                        name,
+                        other_lr,
+                        lr,
+                        n_bins,
+                        features_train,
+                        target_train,
+                        groups_train,
+                        features_test,
+                        target_test,
+                        groups_test,
+                        writer,
+                    )
 
-            other_alg_class = None
-            other_name = ""
-            for alg_class, name, lr in [
-                (OptimisticHedge, "OGD", 0.85),
-                (Hedge, "Hedge", 0.95),
-                (MLProd, "Prod", 0.85),
-                (OnlineGradientDescent, "GD", 0.9),
-            ]:
-                run_expt(
-                    dataset,
-                    seed,
-                    None,
-                    "",
-                    alg_class,
-                    name,
-                    0,
-                    lr,
-                    n_bins,
-                    features_train,
-                    target_train,
-                    groups_train,
-                    features_test,
-                    target_test,
-                    groups_test,
-                    writer,
-                )
+            for lr in [0.8, 0.85, 0.9, 0.95]:
+                other_alg_class = None
+                other_name = ""
+                for alg_class, name in [
+                    (OptimisticHedge, "OGD"),
+                    (Hedge, "Hedge"),
+                    (MLProd, "Prod"),
+                    (OnlineGradientDescent, "GD"),
+                ]:
+                    run_expt(
+                        dataset,
+                        seed,
+                        None,
+                        "",
+                        alg_class,
+                        name,
+                        0,
+                        lr,
+                        n_bins,
+                        features_train,
+                        target_train,
+                        groups_train,
+                        features_test,
+                        target_test,
+                        groups_test,
+                        writer,
+                    )
+
+
+if False:
+    with open("new_adult_income_results.csv", "w", newline="") as csvfile:
+        fieldnames = [
+            "Algorithm",
+            "Iterations",
+            "Dataset",
+            "Learning Rate",
+            "Training Calibration Error",
+            "Testing Calibration Error",
+            "Testing Calibration Error (Ergodic)",
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for seed in range(20):
+            for dataset in ["AdultIncome"]:
+                if dataset == "AdultIncome":
+                    np.random.seed(seed)
+                    random.seed(seed)
+                    data = AdultIncomeData(seed)
+                    features_train, target_train, groups_train = data.get_training_data()
+                    features_test, target_test, groups_test = data.get_test_data()
+                    n_bins = 10
+
+                    for alg_class, name, lr, other_lr in [
+                        (Hedge, "Hedge-Hedge", 0.95, 0.9),
+                        (OptimisticHedge, "OGD-OGD", 0.95, 0.9),
+                    ]:
+                        run_expt(
+                            dataset,
+                            seed,
+                            alg_class,
+                            name,
+                            alg_class,
+                            name,
+                            other_lr,
+                            lr,
+                            n_bins,
+                            features_train,
+                            target_train,
+                            groups_train,
+                            features_test,
+                            target_test,
+                            groups_test,
+                            writer,
+                        )
+
+                    other_alg_class = None
+                    other_name = ""
+                    for alg_class, name, lr in [
+                        (OptimisticHedge, "OGD", 0.9),
+                        (Hedge, "Hedge", 0.9),
+                        (MLProd, "Prod", 0.9),
+                        (OnlineGradientDescent, "GD", 0.9),
+                    ]:
+                        run_expt(
+                            dataset,
+                            seed,
+                            None,
+                            "",
+                            alg_class,
+                            name,
+                            0,
+                            lr,
+                            n_bins,
+                            features_train,
+                            target_train,
+                            groups_train,
+                            features_test,
+                            target_test,
+                            groups_test,
+                            writer,
+                        )
+
+if True:
+    # Dry Bean dataset
+    with open("new_dry_beans_results.csv", "w", newline="") as csvfile:
+        fieldnames = [
+            "Algorithm",
+            "Iterations",
+            "Dataset",
+            "Learning Rate",
+            "Training Calibration Error",
+            "Testing Calibration Error",
+            "Testing Calibration Error (Ergodic)",
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for seed in range(5):
+            dataset = "Dry Beans"
+            np.random.seed(seed)
+            random.seed(seed)
+            data = DryBeanData(seed)
+            features_train, target_train, groups_train = data.get_training_data()
+            features_test, target_test, groups_test = data.get_test_data()
+            n_bins = 3
+            for lr in [0.8, 0.85, 0.9, 0.95]:
+                other_alg_class = None
+                other_name = ""
+                for alg_class, name in [
+                    (MLProd, "Prod"),
+                    (OptimisticHedge, "OGD"),
+                    (Hedge, "Hedge"),
+                    (OnlineGradientDescent, "GD"),
+                ]:
+                    run_expt(
+                        dataset,
+                        seed,
+                        None,
+                        "",
+                        alg_class,
+                        name,
+                        0,
+                        lr,
+                        n_bins,
+                        features_train,
+                        target_train,
+                        groups_train,
+                        features_test,
+                        target_test,
+                        groups_test,
+                        writer,
+                        100,
+                        2,
+                        200,
+                    )
+            for other_lr in [0.98, 0.99, 0.95, 0.9]:
+                for alg_class, name, lr in [
+                    (Hedge, "Hedge-Hedge", 0.95),
+                    (Hedge, "Hedge-Hedge", 0.99),
+                    (Hedge, "Hedge-Hedge", 0.9),
+                    (OptimisticHedge, "OGD-OGD", 0.95),
+                    (OptimisticHedge, "OGD-OGD", 0.99),
+                    (OptimisticHedge, "OGD-OGD", 0.9),
+                ]:
+                    run_expt(
+                        dataset,
+                        seed,
+                        alg_class,
+                        name,
+                        alg_class,
+                        name,
+                        other_lr,
+                        lr,
+                        n_bins,
+                        features_train,
+                        target_train,
+                        groups_train,
+                        features_test,
+                        target_test,
+                        groups_test,
+                        writer,
+                        100,
+                        2,
+                        200,
+                    )
+
+if False:
+    # Bank Market dataset
+    with open("new_bank_market_results.csv", "w", newline="") as csvfile:
+        fieldnames = [
+            "Algorithm",
+            "Iterations",
+            "Dataset",
+            "Learning Rate",
+            "Training Calibration Error",
+            "Testing Calibration Error",
+            "Testing Calibration Error (Ergodic)",
+        ]
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for seed in range(5):
+            dataset = "Bank Market"
+            np.random.seed(seed)
+            random.seed(seed)
+            data = BankMarketingData(seed)
+            features_train, target_train, groups_train = data.get_training_data()
+            features_test, target_test, groups_test = data.get_test_data()
+            n_bins = 10
+
+            for other_lr in [0.98, 0.99, 0.95, 0.9]:
+                for alg_class, name, lr in [
+                    (Hedge, "Hedge-Hedge", 0.95),
+                    (Hedge, "Hedge-Hedge", 0.9),
+                    (OptimisticHedge, "OGD-OGD", 0.95),
+                    (OptimisticHedge, "OGD-OGD", 0.9),
+                ]:
+                    run_expt(
+                        dataset,
+                        seed,
+                        alg_class,
+                        name,
+                        alg_class,
+                        name,
+                        other_lr,
+                        lr,
+                        n_bins,
+                        features_train,
+                        target_train,
+                        groups_train,
+                        features_test,
+                        target_test,
+                        groups_test,
+                        writer,
+                    )
+
+            for lr in [0.8, 0.85, 0.9, 0.95]:
+                other_alg_class = None
+                other_name = ""
+                for alg_class, name in [
+                    (OptimisticHedge, "OGD"),
+                    (Hedge, "Hedge"),
+                    (MLProd, "Prod"),
+                    (OnlineGradientDescent, "GD"),
+                ]:
+                    run_expt(
+                        dataset,
+                        seed,
+                        None,
+                        "",
+                        alg_class,
+                        name,
+                        0,
+                        lr,
+                        n_bins,
+                        features_train,
+                        target_train,
+                        groups_train,
+                        features_test,
+                        target_test,
+                        groups_test,
+                        writer,
+                    )

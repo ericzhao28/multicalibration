@@ -1,4 +1,6 @@
 
+*.png
+
 # Vim files
 *.swp
 *.swo
@@ -41,4 +43,6 @@ __pycache__/
 
 *.pkl
 
-results
+ckpts
+
+new_*
