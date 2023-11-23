@@ -13,7 +13,7 @@ rc("text", usetex=True)
 sns.set()
 
 # Read the data
-df = pd.read_csv("new_bank_market_results.csv")
+df = pd.read_csv("new_dry_beans_results.csv")
 
 # Assuming df is your DataFrame
 # Group by Algorithm, Learning Rate, Dataset, and Iterations

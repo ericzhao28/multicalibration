@@ -12,7 +12,7 @@ from calibration import (
 import pickle
 
 
-FREQUENCY = 12
+FREQUENCY = 12 #3
 
 
 def run_expt(
@@ -252,7 +252,7 @@ if len(sys.argv) > 1:
 else:
     it_todo = None
 
-if False:
+if True:
     with open("new_sweep_adult_income_results.csv", "w", newline="") as csvfile:
         fieldnames = [
             "Algorithm",
@@ -329,7 +329,7 @@ if False:
                     )
 
 
-if False:
+if True:
     with open("new_adult_income_results.csv", "w", newline="") as csvfile:
         fieldnames = [
             "Algorithm",
@@ -487,7 +487,7 @@ if True:
                         200,
                     )
 
-if False:
+if True:
     # Bank Market dataset
     with open("new_bank_market_results.csv", "w", newline="") as csvfile:
         fieldnames = [

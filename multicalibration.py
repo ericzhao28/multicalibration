@@ -57,7 +57,7 @@ class Adversary:
             errors = calculate_calibration_errors(
                 average_labels, predictions, bins, groups
             )
-            weighted_errors = errors * counts[:, :, np.newaxis, np.newaxis]
+            weighted_errors = errors * counts[:, :, np.newaxis, np.newaxis] / len(predictions)
             return (
                 np.unravel_index(weighted_errors.argmax(), weighted_errors.shape),
                 weighted_errors.max(),

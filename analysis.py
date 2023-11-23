@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import argparse
 import seaborn as sns
 import numpy as np
 import matplotlib as mpl
@@ -12,8 +13,13 @@ rc("text", usetex=True)
 # Set Seaborn aesthetic parameters to defaults
 sns.set()
 
+parser = argparse.ArgumentParser(description='Process CSV file path.')
+parser.add_argument('csv_path', type=str, help='Path to the CSV file')
+args = parser.parse_args()
+
 # Read the data
-df = pd.read_csv("new_dry_beans_results.csv")
+df = pd.read_csv(args.csv_path)
+df = df.sort_values('Algorithm')
 
 # Assuming df is your DataFrame
 # Group by Algorithm, Learning Rate, Dataset, and Iterations
@@ -170,7 +176,7 @@ palette = sns.color_palette("husl", len(algorithms))
 
 for dataset in datasets:
     # Create a figure for each dataset
-    fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(8, 6))
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12, 4))
 
     for idx, algorithm in enumerate(algorithms):
         if algorithm == "Prod-Prod":
@@ -218,13 +224,15 @@ for dataset in datasets:
             errorbar='se'  # use standard deviation for the error bars
         )
 
+    if dataset == "AdultIncome":
+        dataset = "Adult Income"
 
     # Set the titles and labels
-    ax[0].set_title(f"Training Calibration Error for {dataset} Dataset", fontsize=16)
-    ax[1].set_title(f"Testing Calibration Error for {dataset} Dataset", fontsize=16)
+    fig.suptitle(f"Multicalibration Errors On {dataset} Dataset", fontsize=16)
+    ax[0].set_ylabel("Training Calibration Error", fontsize=14)
+    ax[1].set_ylabel("Testing Calibration Error", fontsize=14)
     for a in ax:
         a.set_xlabel("Iterations", fontsize=14)
-        a.set_ylabel("Calibration Error", fontsize=14)
         a.set_yscale("log")  # apply log scale to y-axis
         a.legend()
         a.yaxis.set_major_locator(ticker.LogLocator(numticks=10))  # Set the number of ticks (e.g., 10)
