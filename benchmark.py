@@ -12,7 +12,7 @@ from calibration import (
 import pickle
 
 
-FREQUENCY = 12 #3
+FREQUENCY = 12  # 3
 
 
 def run_expt(
@@ -31,8 +31,11 @@ def run_expt(
     features_test,
     target_test,
     groups_test,
+    features_val,
+    target_val,
+    groups_val,
     writer,
-    iterations=50,
+    iterations=100,
     base_lr=1,
     base_other_lr=100,
 ):
@@ -55,8 +58,6 @@ def run_expt(
         + str(x)
     )
 
-    historical_test_error = []
-
     i = 1
     adv = None
     while True:
@@ -67,6 +68,9 @@ def run_expt(
                 )
                 test_algs = pickle.load(
                     open("multicalibrate_test_" + title(i) + ".pkl", "rb")
+                )
+                val_algs = pickle.load(
+                    open("multicalibrate_val_" + title(i) + ".pkl", "rb")
                 )
                 if other_name:
                     adv = pickle.load(
@@ -89,30 +93,40 @@ def run_expt(
                 errors * counts[:, :, np.newaxis, np.newaxis] / len(target_train)
             )
             train_error = weighted_errors.max()
-            # train_error = np.quantile(weighted_errors, 0.99999)
 
             predictions = np.array([alg.weights for alg in test_algs])
             bins = discretize_values(predictions, n_bins)
             avg_test_y, counts = calculate_average_labels(
                 target_test, bins, groups_test, n_bins
             )
-
             errors = calculate_calibration_errors(
                 avg_test_y, predictions, bins, groups_test
             )
             weighted_errors = (
                 errors * counts[:, :, np.newaxis, np.newaxis] / len(target_test)
             )
-            historical_test_error.append(weighted_errors)
             test_error = weighted_errors.max()
-            # test_error = np.quantile(weighted_errors, 0.99999)
-
             avg_test_error = np.mean(weighted_errors, axis=0).max()
+
+            predictions = np.array([alg.weights for alg in val_algs])
+            bins = discretize_values(predictions, n_bins)
+            avg_val_y, val_counts = calculate_average_labels(
+                target_val, bins, groups_val, n_bins
+            )
+            errors = calculate_calibration_errors(
+                avg_val_y, predictions, bins, groups_val
+            )
+            weighted_errors = (
+                errors * val_counts[:, :, np.newaxis, np.newaxis] / len(target_val)
+            )
+            val_error = weighted_errors.max()
 
             print(
                 "(" + title(i) + ")",
                 "Train: ",
                 train_error,
+                "Val: ",
+                val_error,
                 "Test: ",
                 test_error,
                 "Average Test Error:",
@@ -127,6 +141,7 @@ def run_expt(
                     "Learning Rate": lr_full,
                     "Training Calibration Error": train_error,
                     "Testing Calibration Error": test_error,
+                    "Validation Calibration Error": val_error,
                     "Testing Calibration Error (Ergodic)": avg_test_error,
                 }
             )
@@ -143,6 +158,10 @@ def run_expt(
     test_algs = [
         alg_class(len(target_test[0]), learning_rate=learning_rate(i))
         for _ in features_test
+    ]
+    val_algs = [
+        alg_class(len(target_val[0]), learning_rate=learning_rate(i))
+        for _ in features_val
     ]
     while i <= iterations:
         predictions = np.array([alg.weights for alg in train_algs])
@@ -186,6 +205,16 @@ def run_expt(
             groups_test,
             learning_rate(i),
         )
+        _ = update_hedge_algorithms(
+            val_algs,
+            bad_bin,
+            bad_group,
+            bad_class,
+            underestimate,
+            bins,
+            groups_val,
+            learning_rate(i),
+        )
 
         if i % FREQUENCY == 1:
             predictions = np.array([alg.weights for alg in test_algs])
@@ -193,21 +222,34 @@ def run_expt(
             avg_test_y, counts = calculate_average_labels(
                 target_test, bins, groups_test, n_bins
             )
-
             errors = calculate_calibration_errors(
                 avg_test_y, predictions, bins, groups_test
             )
             weighted_errors = (
                 errors * counts[:, :, np.newaxis, np.newaxis] / len(target_test)
             )
-            historical_test_error.append(weighted_errors)
             test_error = weighted_errors.max()
             avg_test_error = np.mean(weighted_errors, axis=0).max()
+
+            predictions = np.array([alg.weights for alg in val_algs])
+            bins = discretize_values(predictions, n_bins)
+            avg_val_y, val_counts = calculate_average_labels(
+                target_val, bins, groups_val, n_bins
+            )
+            errors = calculate_calibration_errors(
+                avg_val_y, predictions, bins, groups_val
+            )
+            weighted_errors = (
+                errors * val_counts[:, :, np.newaxis, np.newaxis] / len(target_val)
+            )
+            val_error = weighted_errors.max()
 
             print(
                 "(" + title(i) + ")",
                 "Train: ",
                 train_error,
+                "Val: ",
+                val_error,
                 "Test: ",
                 test_error,
                 "Average Test Error:",
@@ -222,6 +264,7 @@ def run_expt(
                     "Learning Rate": lr_full,
                     "Training Calibration Error": train_error,
                     "Testing Calibration Error": test_error,
+                    "Validation Calibration Error": val_error,
                     "Testing Calibration Error (Ergodic)": avg_test_error,
                 }
             )
@@ -231,6 +274,7 @@ def run_expt(
             pickle.dump(
                 test_algs, open("multicalibrate_test_" + title(i) + ".pkl", "wb")
             )
+            pickle.dump(val_algs, open("multicalibrate_val_" + title(i) + ".pkl", "wb"))
 
             if other_name:
                 pickle.dump(
@@ -248,11 +292,18 @@ def run_expt(
 import sys
 
 if len(sys.argv) > 1:
-    it_todo = sys.argv[1]
+    t_todo = int(sys.argv[1])
+else:
+    t_todo = None
+
+if len(sys.argv) > 2:
+    it_todo = int(sys.argv[2])
 else:
     it_todo = None
 
-if True:
+print(it_todo, t_todo)
+
+if t_todo is None or t_todo == 0:
     with open("new_sweep_adult_income_results.csv", "w", newline="") as csvfile:
         fieldnames = [
             "Algorithm",
@@ -262,16 +313,20 @@ if True:
             "Training Calibration Error",
             "Testing Calibration Error",
             "Testing Calibration Error (Ergodic)",
+            "Validation Calibration Error",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         for seed in range(10):
+            if it_todo is not None and it_todo != seed:
+                continue
             dataset = "AdultIncome"
             np.random.seed(seed)
             random.seed(seed)
             data = AdultIncomeData(seed)
             features_train, target_train, groups_train = data.get_training_data()
             features_test, target_test, groups_test = data.get_test_data()
+            features_val, target_val, groups_val = data.get_val_data()
             n_bins = 10
 
             for other_lr in [0.98, 0.99, 0.95, 0.9]:
@@ -297,6 +352,9 @@ if True:
                         features_test,
                         target_test,
                         groups_test,
+                        features_val,
+                        target_val,
+                        groups_val,
                         writer,
                     )
 
@@ -325,11 +383,14 @@ if True:
                         features_test,
                         target_test,
                         groups_test,
+                        features_val,
+                        target_val,
+                        groups_val,
                         writer,
                     )
 
 
-if True:
+if t_todo is None or t_todo == 1:
     with open("new_adult_income_results.csv", "w", newline="") as csvfile:
         fieldnames = [
             "Algorithm",
@@ -339,23 +400,31 @@ if True:
             "Training Calibration Error",
             "Testing Calibration Error",
             "Testing Calibration Error (Ergodic)",
+            "Validation Calibration Error",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
         for seed in range(20):
+            if it_todo is not None and it_todo != seed:
+                continue
             for dataset in ["AdultIncome"]:
                 if dataset == "AdultIncome":
                     np.random.seed(seed)
                     random.seed(seed)
                     data = AdultIncomeData(seed)
-                    features_train, target_train, groups_train = data.get_training_data()
+                    (
+                        features_train,
+                        target_train,
+                        groups_train,
+                    ) = data.get_training_data()
                     features_test, target_test, groups_test = data.get_test_data()
+                    features_val, target_val, groups_val = data.get_val_data()
                     n_bins = 10
 
                     for alg_class, name, lr, other_lr in [
                         (Hedge, "Hedge-Hedge", 0.95, 0.9),
-                        (OptimisticHedge, "OGD-OGD", 0.95, 0.9),
+                        (OptimisticHedge, "OGD-OGD", 0.95, 0.99),
                     ]:
                         run_expt(
                             dataset,
@@ -373,6 +442,9 @@ if True:
                             features_test,
                             target_test,
                             groups_test,
+                            features_val,
+                            target_val,
+                            groups_val,
                             writer,
                         )
 
@@ -380,8 +452,8 @@ if True:
                     other_name = ""
                     for alg_class, name, lr in [
                         (OptimisticHedge, "OGD", 0.9),
-                        (Hedge, "Hedge", 0.9),
-                        (MLProd, "Prod", 0.9),
+                        (Hedge, "Hedge", 0.8),
+                        (MLProd, "Prod", 0.95),
                         (OnlineGradientDescent, "GD", 0.9),
                     ]:
                         run_expt(
@@ -400,10 +472,13 @@ if True:
                             features_test,
                             target_test,
                             groups_test,
+                            features_val,
+                            target_val,
+                            groups_val,
                             writer,
                         )
 
-if True:
+if t_todo is None or t_todo == 2:
     # Dry Bean dataset
     with open("new_dry_beans_results.csv", "w", newline="") as csvfile:
         fieldnames = [
@@ -414,17 +489,21 @@ if True:
             "Training Calibration Error",
             "Testing Calibration Error",
             "Testing Calibration Error (Ergodic)",
+            "Validation Calibration Error",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
         for seed in range(5):
+            if it_todo is not None and it_todo != seed:
+                continue
             dataset = "Dry Beans"
             np.random.seed(seed)
             random.seed(seed)
             data = DryBeanData(seed)
             features_train, target_train, groups_train = data.get_training_data()
             features_test, target_test, groups_test = data.get_test_data()
+            features_val, target_val, groups_val = data.get_val_data()
             n_bins = 3
             for lr in [0.8, 0.85, 0.9, 0.95]:
                 other_alg_class = None
@@ -451,8 +530,11 @@ if True:
                         features_test,
                         target_test,
                         groups_test,
+                        features_val,
+                        target_val,
+                        groups_val,
                         writer,
-                        100,
+                        200,
                         2,
                         200,
                     )
@@ -481,13 +563,16 @@ if True:
                         features_test,
                         target_test,
                         groups_test,
+                        features_val,
+                        target_val,
+                        groups_val,
                         writer,
-                        100,
+                        200,
                         2,
                         200,
                     )
 
-if True:
+if t_todo is None or t_todo == 3:
     # Bank Market dataset
     with open("new_bank_market_results.csv", "w", newline="") as csvfile:
         fieldnames = [
@@ -498,17 +583,21 @@ if True:
             "Training Calibration Error",
             "Testing Calibration Error",
             "Testing Calibration Error (Ergodic)",
+            "Validation Calibration Error",
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
 
         for seed in range(5):
+            if it_todo is not None and it_todo != seed:
+                continue
             dataset = "Bank Market"
             np.random.seed(seed)
             random.seed(seed)
             data = BankMarketingData(seed)
             features_train, target_train, groups_train = data.get_training_data()
             features_test, target_test, groups_test = data.get_test_data()
+            features_val, target_val, groups_val = data.get_val_data()
             n_bins = 10
 
             for other_lr in [0.98, 0.99, 0.95, 0.9]:
@@ -534,6 +623,9 @@ if True:
                         features_test,
                         target_test,
                         groups_test,
+                        features_val,
+                        target_val,
+                        groups_val,
                         writer,
                     )
 
@@ -562,5 +654,9 @@ if True:
                         features_test,
                         target_test,
                         groups_test,
+                        features_val,
+                        target_val,
+                        groups_val,
                         writer,
                     )
+

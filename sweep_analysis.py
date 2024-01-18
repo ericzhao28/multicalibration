@@ -13,12 +13,13 @@ rc("text", usetex=True)
 sns.set()
 
 # Read the data
-df = pd.read_csv("new_dry_beans_results.csv")
+df = pd.read_csv("new_sweep_adult_income_results.csv")
 
 # Assuming df is your DataFrame
 # Group by Algorithm, Learning Rate, Dataset, and Iterations
 grouped_train = df.groupby(["Algorithm", "Learning Rate", "Dataset", "Iterations"])
 grouped_test = df.groupby(["Algorithm", "Learning Rate", "Dataset", "Iterations"])
+grouped_val = df.groupby(["Algorithm", "Learning Rate", "Dataset", "Iterations"])
 grouped_avg_test = df.groupby(["Algorithm", "Learning Rate", "Dataset", "Iterations"])
 
 print(df.isnull().values.any())
@@ -28,6 +29,7 @@ summary_train = grouped_train["Training Calibration Error"].agg(["mean", "sem", 
 
 # Compute mean and standard deviation of Testing Calibration Error
 summary_test = grouped_test["Testing Calibration Error"].agg(["mean", "sem", "count"])
+summary_val = grouped_val["Validation Calibration Error"].agg(["mean", "sem", "count"])
 
 # Compute mean and standard deviation of Testing Calibration Error
 summary_avg_test = grouped_avg_test["Testing Calibration Error (Ergodic)"].agg(["mean", "sem", "count"])
@@ -36,6 +38,7 @@ summary_avg_test = grouped_avg_test["Testing Calibration Error (Ergodic)"].agg([
 # Reset the index for the next steps
 summary_train.reset_index(inplace=True)
 summary_test.reset_index(inplace=True)
+summary_val.reset_index(inplace=True)
 summary_avg_test.reset_index(inplace=True)
 
 # Initialize an empty DataFrame to hold the final results
@@ -53,6 +56,10 @@ for algorithm in df["Algorithm"].unique():
             (summary_test["Algorithm"] == algorithm)
             & (summary_test["Dataset"] == dataset)
         ]
+        subset_val = summary_val[
+            (summary_val["Algorithm"] == algorithm)
+            & (summary_val["Dataset"] == dataset)
+        ]
         subset_avg_test = summary_avg_test[
             (summary_avg_test["Algorithm"] == algorithm)
             & (summary_avg_test["Dataset"] == dataset)
@@ -68,6 +75,9 @@ for algorithm in df["Algorithm"].unique():
         last_iteration_test = subset_test.groupby(["Learning Rate"])[
             "Iterations"
         ].max()
+        last_iteration_val = subset_val.groupby(["Learning Rate"])[
+            "Iterations"
+        ].max()
         last_iteration_avg_test = subset_avg_test.groupby(["Learning Rate"])[
             "Iterations"
         ].max()
@@ -76,6 +86,9 @@ for algorithm in df["Algorithm"].unique():
         ]
         last_iteration_summary_test = subset_test[
             subset_test["Iterations"].isin(last_iteration_test)
+        ]
+        last_iteration_summary_val = subset_val[
+            subset_val["Iterations"].isin(last_iteration_val)
         ]
         last_iteration_summary_avg_test = subset_train[
             subset_avg_test["Iterations"].isin(last_iteration_avg_test)
@@ -86,21 +99,27 @@ for algorithm in df["Algorithm"].unique():
 
         # Find the corresponding Testing Calibration Error
         best_lr_summary_test = last_iteration_summary_test
+        best_lr_summary_val = last_iteration_summary_val
 
         # Find the corresponding Avg Testing Calibration Error
         best_lr_summary_avg_test = last_iteration_summary_avg_test
 
         # Merge the Training and Testing summaries
         best_lr_summary = pd.merge(
-            pd.merge(
-                best_lr_summary_train,
-                best_lr_summary_test,
-                on=["Algorithm", "Learning Rate", "Dataset", "Iterations"],
-                suffixes=("_train", "_test"),
-            ),
-            best_lr_summary_avg_test,
-            on=["Algorithm", "Learning Rate", "Dataset", "Iterations"],
-            suffixes=("", "_avg_test"),
+                pd.merge(
+                    pd.merge(
+                        best_lr_summary_train,
+                        best_lr_summary_test,
+                        on=["Algorithm", "Learning Rate", "Dataset", "Iterations"],
+                        suffixes=("_train", "_test"),
+                    ),
+                    best_lr_summary_avg_test,
+                    on=["Algorithm", "Learning Rate", "Dataset", "Iterations"],
+                    suffixes=("", "_avg_test"),
+                ),
+                best_lr_summary_val,
+                    on=["Algorithm", "Learning Rate", "Dataset", "Iterations"],
+                    suffixes=("", "_val"),
         )
         best_lr_summary = best_lr_summary.rename(
             columns={"mean": "mean_avg_test", "sem": "sem_avg_test",  "count": "count_avg_test"}
@@ -118,6 +137,9 @@ final_summary["Training Calibration Error"] = final_summary.apply(
 final_summary["Testing Calibration Error"] = final_summary.apply(
     lambda row: f"{row['mean_test']:.3f} $\pm$ {row['sem_test']:.3f} (n={row['count_test']})", axis=1
 )
+final_summary["Validation Calibration Error"] = final_summary.apply(
+    lambda row: f"{row['mean_val']:.3f} $\pm$ {row['sem_val']:.3f} (n={row['count_val']})", axis=1
+)
 final_summary["Testing Calibration Error (Ergodic)"] = final_summary.apply(
     lambda row: f"{row['mean_avg_test']:.6f} $\pm$ {row['sem_avg_test']:.6f} (n={row['count_avg_test']})", axis=1
 )
@@ -125,7 +147,7 @@ final_summary["Testing Calibration Error (Ergodic)"] = final_summary.apply(
 # Drop the original mean, sem and count columns
 final_summary.drop(
     columns=["mean_train", "sem_train", "count_train", 
-             "mean_test", "sem_test", "count_test", 
+             "mean_test", "sem_test", "count_test", "mean_val", "sem_val", "count_val",
              "mean_avg_test", "sem_avg_test", "count_avg_test"], inplace=True
 )
 
@@ -137,6 +159,7 @@ final_summary = final_summary[
         "Learning Rate",
         "Training Calibration Error",
         "Testing Calibration Error",
+        "Validation Calibration Error",
         "Testing Calibration Error (Ergodic)",
     ]
 ]

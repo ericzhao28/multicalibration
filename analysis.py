@@ -21,10 +21,15 @@ args = parser.parse_args()
 df = pd.read_csv(args.csv_path)
 df = df.sort_values('Algorithm')
 
+alg_repls = {
+        "Hedge-Hedge": "Hedge-Hedge (NRNR)", "OGD-OGD": "OptHedge-OptHedge (NRNR)", "OGD": "OptHedge-ERM (NRBR)", "Hedge": "Hedge-ERM (NRBR)", "Prod": "Prod-ERM (NRBR)", "GD": "GD-ERM (NRBR)"}
+df["Algorithm"] = df["Algorithm"].replace(alg_repls)
+
 # Assuming df is your DataFrame
 # Group by Algorithm, Learning Rate, Dataset, and Iterations
 grouped_train = df.groupby(["Algorithm", "Learning Rate", "Dataset", "Iterations"])
 grouped_test = df.groupby(["Algorithm", "Learning Rate", "Dataset", "Iterations"])
+grouped_val = df.groupby(["Algorithm", "Learning Rate", "Dataset", "Iterations"])
 grouped_avg_test = df.groupby(["Algorithm", "Learning Rate", "Dataset", "Iterations"])
 
 print(df.isnull().values.any())
@@ -36,12 +41,16 @@ summary_train = grouped_train["Training Calibration Error"].agg(["mean", "sem", 
 summary_test = grouped_test["Testing Calibration Error"].agg(["mean", "sem", "count"])
 
 # Compute mean and standard deviation of Testing Calibration Error
+summary_val = grouped_test["Validation Calibration Error"].agg(["mean", "sem", "count"])
+
+# Compute mean and standard deviation of Testing Calibration Error
 summary_avg_test = grouped_avg_test["Testing Calibration Error (Ergodic)"].agg(["mean", "sem", "count"])
 
 
 # Reset the index for the next steps
 summary_train.reset_index(inplace=True)
 summary_test.reset_index(inplace=True)
+summary_val.reset_index(inplace=True)
 summary_avg_test.reset_index(inplace=True)
 
 # Initialize an empty DataFrame to hold the final results
@@ -55,6 +64,10 @@ for algorithm in df["Algorithm"].unique():
             (summary_train["Algorithm"] == algorithm)
             & (summary_train["Dataset"] == dataset)
         ]
+        subset_val = summary_val[
+            (summary_val["Algorithm"] == algorithm)
+            & (summary_val["Dataset"] == dataset)
+        ]
         subset_test = summary_test[
             (summary_test["Algorithm"] == algorithm)
             & (summary_test["Dataset"] == dataset)
@@ -67,6 +80,16 @@ for algorithm in df["Algorithm"].unique():
             print(subset_train.isnull().any())
             print(subset_train[subset_train.isnull().any(axis=1)])
 
+        # Find the Learning Rate that yields the minimum mean Training Calibration Error
+        last_iteration_val = subset_val.groupby(["Learning Rate"])[
+            "Iterations"
+        ].max()
+        last_iteration_summary_val = subset_val[
+            subset_val["Iterations"].isin(last_iteration_val)
+        ]
+        idx_val = last_iteration_summary_val["mean"].idxmin()
+        best_lr_summary_val = last_iteration_summary_val.loc[[idx_val]]
+
         # Find the last iteration for each Learning Rate
         last_iteration_train = subset_train.groupby(["Learning Rate"])[
             "Iterations"
@@ -74,10 +97,11 @@ for algorithm in df["Algorithm"].unique():
         last_iteration_summary_train = subset_train[
             subset_train["Iterations"].isin(last_iteration_train)
         ]
-
-        # Find the Learning Rate that yields the minimum mean Training Calibration Error
-        idx_train = last_iteration_summary_train["mean"].idxmin()
-        best_lr_summary_train = last_iteration_summary_train.loc[[idx_train]]
+        best_lr_summary_train = last_iteration_summary_train[
+            last_iteration_summary_train["Learning Rate"].isin(
+                best_lr_summary_val["Learning Rate"]
+            )
+        ]
 
         # Find the corresponding Testing Calibration Error
         last_iteration_test = subset_test.groupby(["Learning Rate"])["Iterations"].max()
@@ -86,7 +110,7 @@ for algorithm in df["Algorithm"].unique():
         ]
         best_lr_summary_test = last_iteration_summary_test[
             last_iteration_summary_test["Learning Rate"].isin(
-                best_lr_summary_train["Learning Rate"]
+                best_lr_summary_val["Learning Rate"]
             )
         ]
 
@@ -97,7 +121,7 @@ for algorithm in df["Algorithm"].unique():
         ]
         best_lr_summary_avg_test = last_iteration_summary_avg_test[
             last_iteration_summary_avg_test["Learning Rate"].isin(
-                best_lr_summary_train["Learning Rate"]
+                best_lr_summary_val["Learning Rate"]
             )
         ]
 
