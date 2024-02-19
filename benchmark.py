@@ -60,7 +60,7 @@ def run_expt(
 
     i = 1
     adv = None
-    while True:
+    while i <= iterations:
         if i % FREQUENCY == 1:
             try:
                 train_algs = pickle.load(
@@ -534,9 +534,7 @@ if t_todo is None or t_todo == 2:
                         target_val,
                         groups_val,
                         writer,
-                        200,
-                        2,
-                        200,
+                        400,
                     )
             for other_lr in [0.98, 0.99, 0.95, 0.9]:
                 for alg_class, name, lr in [
@@ -567,9 +565,7 @@ if t_todo is None or t_todo == 2:
                         target_val,
                         groups_val,
                         writer,
-                        200,
-                        2,
-                        200,
+                        400,
                     )
 
 if t_todo is None or t_todo == 3:
